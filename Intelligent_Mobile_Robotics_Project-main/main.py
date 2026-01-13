@@ -1,4 +1,5 @@
 from flight_environment import FlightEnvironment
+from path_planner import RRT_star
 
 env = FlightEnvironment(50)
 start = (1,2,0)
@@ -13,10 +14,12 @@ goal = (18,18,3)
 #   - column 3 contains the z-coordinates of all path points
 # This `path` array will be provided to the `env` object for visualization.
 
-path = [[0,0,0],[1,1,1],[2,2,2],[3,3,3]]
+rrt_star = RRT_star()
+path = rrt_star.plan(start, goal, env)
+print(path)
 
 # --------------------------------------------------------------------------------------------------- #
-path = [[0,0,0],[1,1,1],[2,2,2]]
+
 
 env.plot_cylinders(path)
 
