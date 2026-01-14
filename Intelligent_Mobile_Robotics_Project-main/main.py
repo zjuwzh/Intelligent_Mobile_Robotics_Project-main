@@ -1,5 +1,6 @@
 from flight_environment import FlightEnvironment
 from path_planner import RRT_star
+from trajectory_generator import TrajectoryPlanner
 
 env = FlightEnvironment(50)
 start = (1,2,0)
@@ -14,9 +15,11 @@ goal = (18,18,3)
 #   - column 3 contains the z-coordinates of all path points
 # This `path` array will be provided to the `env` object for visualization.
 
+
 rrt_star = RRT_star()
 path = rrt_star.plan(start, goal, env)
 print(path)
+
 
 # --------------------------------------------------------------------------------------------------- #
 
@@ -38,6 +41,9 @@ env.plot_cylinders(path)
 #   follows these path points.
 
 
+trajectory_planner = TrajectoryPlanner()
+trajectory, t_points, derivatives = trajectory_planner.bspline_trajectory(path, num_points=100)
+trajectory_planner.plot_trajectory(path, trajectory, t_points)
 
 
 # --------------------------------------------------------------------------------------------------- #

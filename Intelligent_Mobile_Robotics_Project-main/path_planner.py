@@ -28,21 +28,16 @@ class Node:
 
 
 class RRT_star:
-    def __init__(self, MAX_EPOCH=400, N_SAMPLE=100, STEP_PER_SEARCH=0.1, DIST_OPT=1, ARRIVE_Radius=0.1):
+    def __init__(self, MAX_EPOCH=2000, N_SAMPLE=100, STEP_PER_SEARCH=1, DIST_OPT=4, ARRIVE_Radius=1):
         self.MAX_EPOCH = MAX_EPOCH
         self.N_SAMPLE = N_SAMPLE
         self.STEP_PER_SEARCH = STEP_PER_SEARCH
         self.DIST_OPT = DIST_OPT # optimization distance
-        self.ARRIVE_Radius = ARRIVE_Radius # the goal: a circle, r = 100
-
-
-        self.max_dist = 0.1 * math.sqrt(5)
+        self.ARRIVE_Radius = ARRIVE_Radius # the goal: a circle
+        self.avoid_obs = 0.02
         self.max_cost = 1000
 
     def plan(self, start_given, goal_given, env: FlightEnvironment):
-        # Obstacle KD Tree
-        obstree = KDTree(env.cylinders)
-
         # Type conversion to Node
         start = Node(start_given[0], start_given[1], start_given[2], 0.0, -1)
         goal = Node(goal_given[0], goal_given[1], goal_given[2], 0.0, -1)
@@ -54,7 +49,7 @@ class RRT_star:
             # Search Tree(one epoch)
             for _ in range(self.N_SAMPLE): # sample 100 points at most
                 # sample a point
-                sample = self.sampling(env, obstree)
+                sample = self.sampling(env)
 
                 # find the nearest point in roadmap to the sampled point
                 dist = []
@@ -77,6 +72,12 @@ class RRT_star:
                 new_x = roadmap[index].x + self.STEP_PER_SEARCH * dx / math.hypot(dx, dy, dz)
                 new_y = roadmap[index].y + self.STEP_PER_SEARCH * dy / math.hypot(dx, dy, dz)
                 new_z = roadmap[index].z + self.STEP_PER_SEARCH * dz / math.hypot(dx, dy, dz)
+                new_point = np.array([new_x, new_y, new_z])
+
+                if env.is_collide(new_point) is True:
+                    continue
+                else:
+                    pass
 
                 # optimize roadmap
                 cost = [0] * len(roadmap)
@@ -87,7 +88,7 @@ class RRT_star:
                     dy_op = new_y - roadmap[k].y
                     dz_op = new_z - roadmap[k].z
                     d_op = math.hypot(dx_op, dy_op, dz_op)
-                    if d_op <= self.DIST_OPT: # 此处可能需要检查碰撞
+                    if d_op <= self.DIST_OPT:
                         cost[k] = roadmap[k].cost + d_op
                     else:
                         cost[k] = self.max_cost
@@ -97,17 +98,34 @@ class RRT_star:
                             break
                 if flag == 1:
                     continue
-
-                # add new point to roadmap
+                
+                # Check whether a line in 3D space collides with a given set of cylinders
                 cost_min = min(cost)
                 index_cost_min = cost.index(cost_min)
-                node = Node(new_x, new_y, new_z, cost_min, roadmap[index_cost_min])
+                parent_point_node = roadmap[index_cost_min]
+                parent_point = np.array([parent_point_node.x, parent_point_node.y, parent_point_node.z])
+                new_point = np.array([new_x, new_y, new_z])
+                d_point = np.linalg.norm(new_point - parent_point)
+                flag_obs = 0
+
+                for i in range(int(self.STEP_PER_SEARCH/self.avoid_obs)):
+                    point = parent_point + i * self.avoid_obs * (new_point - parent_point) / d_point
+                    if env.is_collide(point) is True:
+                        flag_obs = 1
+                        break
+                    else:
+                        pass
+                if flag_obs == 1:
+                    continue
+
+                # add new point to roadmap
+                node = Node(new_x, new_y, new_z, cost_min, parent_point_node)
                 roadmap[len(roadmap)] = node
                 break
             
             # check if the new point is close enough to goal
             if math.hypot(new_x-goal_given[0], new_y-goal_given[1], new_z-goal_given[2]) < self.ARRIVE_Radius:
-                goal = node
+                goal.parent = node
                 print("Goal is found!")
                 break
 
@@ -141,7 +159,7 @@ class RRT_star:
 
         return np.array(path)
 
-    def sampling(self, env: FlightEnvironment, obstree):
+    def sampling(self, env: FlightEnvironment):
         # sample until N_SAMPLE
         num = 0
 
@@ -149,8 +167,8 @@ class RRT_star:
             num = num + 1
 
             # randomly sampling from the environment
-            sample_x = (random.random() * (env.env_length - 0)) + 0
-            sample_y = (random.random() * (env.env_width - 0)) + 0
+            sample_x = (random.random() * (env.env_width - 0)) + 0
+            sample_y = (random.random() * (env.env_length - 0)) + 0
             sample_z = (random.random() * (env.env_height - 0)) + 0
 
             # Type conversion to tuple
@@ -165,5 +183,8 @@ class RRT_star:
                     continue
                 else:
                     break
+        
+        if num == self.N_SAMPLE:
+            print("sampling fail!")
 
         return sample
