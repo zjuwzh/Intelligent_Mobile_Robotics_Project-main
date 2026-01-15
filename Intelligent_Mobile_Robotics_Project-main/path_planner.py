@@ -137,7 +137,7 @@ class RRT_star:
                 dy_op = new_y - roadmap[k].y
                 dz_op = new_z - roadmap[k].z
                 d_op = math.hypot(dx_op, dy_op, dz_op)
-                if d_op <= self.DIST_OPT: # 此处可能需要检查碰撞
+                if d_op <= self.DIST_OPT:
                     cost[k] = roadmap[k].cost + d_op
                 else:
                     cost[k] = self.max_cost
@@ -157,7 +157,8 @@ class RRT_star:
             path.append([parent.x, parent.y, parent.z])
             parent = parent.parent
 
-        return np.array(path)
+        # reverse path and return
+        return np.array(path)[::-1]
 
     def sampling(self, env: FlightEnvironment):
         # sample until N_SAMPLE

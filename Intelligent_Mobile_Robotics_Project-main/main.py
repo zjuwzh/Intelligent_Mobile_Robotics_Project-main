@@ -18,7 +18,7 @@ goal = (18,18,3)
 
 rrt_star = RRT_star()
 path = rrt_star.plan(start, goal, env)
-print(path)
+# print(path)
 
 
 # --------------------------------------------------------------------------------------------------- #
@@ -42,8 +42,8 @@ env.plot_cylinders(path)
 
 
 trajectory_planner = TrajectoryPlanner()
-trajectory, t_points, derivatives = trajectory_planner.bspline_trajectory(path, num_points=100)
-trajectory_planner.plot_trajectory(path, trajectory, t_points)
+trajectory, t_points, t_path = trajectory_planner.bspline_trajectory(path, num_points=100)
+trajectory_planner.plot_trajectory(path, trajectory, t_points, t_path)
 
 
 # --------------------------------------------------------------------------------------------------- #
